@@ -48,12 +48,14 @@ def cargar_summary_financiero(ruta: str, periodo: str = "2024") -> Dict[str, flo
 
     df = pd.read_excel(ruta, sheet_name=0)
     df.rename(columns={df.columns[0]: "metric"}, inplace=True)
+    df.columns = [str(col) for col in df.columns]
     df.set_index("metric", inplace=True)
+    periodo_col = str(periodo)
 
     def _extraer_valor(nombre: str) -> float:
         if nombre not in df.index:
             raise KeyError(f"No se encontró la fila '{nombre}' en {ruta}")
-        valor = df.loc[nombre, periodo]
+        valor = df.loc[nombre, periodo_col]
         if pd.isna(valor):
             raise ValueError(f"La fila '{nombre}' no tiene datos para {periodo}")
         return float(valor)
@@ -92,8 +94,8 @@ def cargar_summary_financiero(ruta: str, periodo: str = "2024") -> Dict[str, flo
 
     # Para la variación de capital de trabajo usamos el año previo si existe
     anos_disponibles = [c for c in df.columns if str(c).isdigit()]
-    if periodo.isdigit():
-        prev_ano = str(int(periodo) - 1)
+    if periodo_col.isdigit():
+        prev_ano = str(int(periodo_col) - 1)
         if prev_ano in anos_disponibles and "Working Capital" in df.index:
             wc_prev = df.loc["Working Capital", prev_ano]
             metrics["delta_wc"] = metrics["working_capital"] - float(wc_prev)
@@ -106,8 +108,9 @@ def cargar_summary_financiero(ruta: str, periodo: str = "2024") -> Dict[str, flo
     try:
         df_cf = pd.read_excel("Cash Flow_Annual_Restated.xls", sheet_name=0)
         df_cf.rename(columns={df_cf.columns[0]: "metric"}, inplace=True)
+        df_cf.columns = [str(col) for col in df_cf.columns]
         df_cf.set_index("metric", inplace=True)
-        metrics["depreciation"] = float(df_cf.loc["Depreciation, Amortization and Depletion", periodo])
+        metrics["depreciation"] = float(df_cf.loc["Depreciation, Amortization and Depletion", periodo_col])
     except Exception:
         metrics["depreciation"] = metrics["ebitda"] - metrics["ebit"]
 
